@@ -11,14 +11,40 @@
 
 // export default db;
 
+// import mysql from "mysql2/promise";
+
+// const db = mysql.createPool({
+//     host: process.env.DB_HOST,
+//     user: process.env.DB_USER,
+//     password: process.env.DB_PASSWORD,
+//     database: process.env.DB_NAME,
+//     port: process.env.DB_PORT,
+// });
+
+// export default db; 
 import mysql from "mysql2/promise";
 
-const db = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT,
-});
+const globalForDb = globalThis;
 
-export default db; 
+export const db =
+    globalForDb.db ??
+    mysql.createPool({
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        port: Number(process.env.DB_PORT),
+
+        // REQUIRED for Railway proxy + Vercel
+        ssl: {
+            rejectUnauthorized: false,
+        },
+
+        // IMPORTANT for serverless
+        connectionLimit: 10,
+        waitForConnections: true,
+    });
+
+if (process.env.NODE_ENV !== "production") globalForDb.db = db;
+
+export default db;
